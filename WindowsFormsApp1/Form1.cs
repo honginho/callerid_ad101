@@ -107,6 +107,8 @@ namespace WindowsFormsApp1
             InitializeComponent();
         }
 
+        // OLE database CRUD example in C#:
+        // http://csharpexamples.com/tag/crud/
         private void InsertCallerDetailsToRecordDBF(int index, string phoneNumber, DateTime dialDatetime)
         {
             string DBTable_AllRecord = "a03_phone1";
