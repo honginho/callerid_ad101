@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Data.OleDb;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -21,34 +22,34 @@ namespace WindowsFormsApp1
     public partial class CallID : Form
     {
         #region
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_GetCallerID", CharSet = CharSet.Ansi)]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_GetCallerID", CharSet = CharSet.Ansi)]
         public static extern int AD101_GetCallerID(int nLine, StringBuilder szCallerIDBuffer, StringBuilder szName, StringBuilder szTime);
 
         // Control led 
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_SetLED")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_SetLED")]
         public static extern int AD101_SetLED(int nLine, int enumLed);
 
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_GetParameter")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_GetParameter")]
         public static extern int AD101_GetParameter(int nLine, ref AD101DEVICEPARAMETER tagParameter);
 
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_GetCPUVersion")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_GetCPUVersion")]
         public static extern int AD101_GetCPUVersion(int nLine, StringBuilder szCPUVersion);
 
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_InitDevice")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_InitDevice")]
         public static extern int AD101_InitDevice(int hWnd);
 
         // Get talking time
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_GetTalkTime")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_GetTalkTime")]
         public static extern int AD101_GetTalkTime(int nLine);
 
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_GetCPUID")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_GetCPUID")]
         public static extern int AD101_GetCPUID(int nLine, StringBuilder szCPUID);
 
 
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_ReadParameter")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_ReadParameter")]
         public static extern int AD101_ReadParameter(int nLine);
 
-        [DllImport("AD101Device.dll", EntryPoint = "AD101_GetDialDigit")]
+        [DllImport("KYC_AD101Device.dll", EntryPoint = "AD101_GetDialDigit")]
         public static extern int AD101_GetDialDigit(int nLine, StringBuilder szDialDigitBuffer);
 
         public const int MCU_BACKCID = 0x09;		// Return Device CallerID
@@ -106,18 +107,56 @@ namespace WindowsFormsApp1
             InitializeComponent();
         }
 
-        private void InsertCallerDetailsToDBF(int index, string phoneNumber, DateTime dialDatetime)
+        private void InsertCallerDetailsToRecordDBF(int index, string phoneNumber, DateTime dialDatetime)
         {
-            string DBSource = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"a03_tel_in.dbf");
+            string DBTable_AllRecord = "a03_phone1";
+            string DBSource = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DBTable_AllRecord + ".dbf");
             using (OleDbConnection dbfcon = new OleDbConnection("Provider=vfpoledb;Data Source=" + DBSource + ";Collating Sequence=machine;Mode=ReadWrite;"))
             {
-                string query = @"INSERT INTO A03_tel_in(Datetime1, C_line, C_tel) VALUES(?,?,?)";
-                OleDbCommand cmd = new OleDbCommand(query, dbfcon);
-                cmd.Parameters.AddWithValue("@Datetime1", dialDatetime);
-                cmd.Parameters.AddWithValue("@C_line", index.ToString());
-                cmd.Parameters.AddWithValue("@C_tel", phoneNumber);
-
                 dbfcon.Open();
+                // get next ID (implement auto-increment)
+                string query1 = @"SELECT TOP 1 c_no FROM " + DBTable_AllRecord + " ORDER BY c_no DESC";
+                OleDbCommand cmd1 = new OleDbCommand(query1, dbfcon);
+                DataTable table = new DataTable();
+                OleDbDataAdapter adapter = new OleDbDataAdapter();
+                adapter.SelectCommand = cmd1;
+                adapter.Fill(table);
+                int nextID = 0;
+                foreach (DataRow row in table.Rows)
+                {
+                    nextID = Convert.ToInt32(row["c_no"]);
+                }
+                nextID++;
+
+                // insert new record to .dbf
+                string query2 = @"INSERT INTO " + DBTable_AllRecord + "(c_no, datetime1, c_line, c_phone) VALUES(?,?,?,?)";
+                OleDbCommand cmd2 = new OleDbCommand(query2, dbfcon);
+                cmd2.Parameters.AddWithValue("@c_no", nextID);
+                cmd2.Parameters.AddWithValue("@datetime1", dialDatetime);
+                cmd2.Parameters.AddWithValue("@c_line", index.ToString());
+                cmd2.Parameters.AddWithValue("@c_phone", phoneNumber);
+
+                new OleDbCommand("set null off", dbfcon).ExecuteNonQuery();
+                cmd1.ExecuteNonQuery();
+                cmd2.ExecuteNonQuery();
+                dbfcon.Close();
+            }
+        }
+
+        private void InsertCallerDetailsToPerLineDBF(int index, string phoneNumber, string dialDatetime)
+        {
+            string DBTable_AllRecord = "a03_callid_reg";
+            string DBSource = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DBTable_AllRecord + ".dbf");
+            using (OleDbConnection dbfcon = new OleDbConnection("Provider=vfpoledb;Data Source=" + DBSource + ";Collating Sequence=machine;Mode=ReadWrite;"))
+            {
+                dbfcon.Open();
+
+                string query = @"UPDATE " + DBTable_AllRecord + " SET c_tel = ?, datetime1 = ?, c_no01='', c_no02='', c_no03='', c_no04='', c_no05='', c_no06='', c_no07='', c_no08='', c_no09='', c_no10='' WHERE c_line = ?";
+                OleDbCommand cmd = new OleDbCommand(query, dbfcon);
+                cmd.Parameters.AddWithValue("@c_tel", phoneNumber);
+                cmd.Parameters.AddWithValue("@datetime1", dialDatetime);
+                cmd.Parameters.AddWithValue("@c_line", index);
+
                 new OleDbCommand("set null off", dbfcon).ExecuteNonQuery();
                 cmd.ExecuteNonQuery();
                 dbfcon.Close();
@@ -180,7 +219,8 @@ namespace WindowsFormsApp1
                                 }
                                 listView1.Items[nLine].SubItems[4].Text = phoneNumber;
                                 listView1.Items[nLine].SubItems[5].Text = strDialDatetime;
-                                InsertCallerDetailsToDBF(nLine, phoneNumber, dialDatetime);
+                                InsertCallerDetailsToRecordDBF(nLine, phoneNumber, dialDatetime);
+                                InsertCallerDetailsToPerLineDBF(nLine, phoneNumber, strDialDatetime);
                             });
                         }
                         break;
