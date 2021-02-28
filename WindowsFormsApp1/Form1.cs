@@ -110,7 +110,7 @@ namespace WindowsFormsApp1
 
         // OLE database CRUD example in C#:
         // http://csharpexamples.com/tag/crud/
-        private void InsertCallerDetailsToRecordDBF(int index, string phoneNumber, DateTime dialDatetime)
+        private void KYC_InsertCallerDetailsToRecordDBF(int index, string phoneNumber, DateTime dialDatetime)
         {
             string DBTable_AllRecord = "a03_phone1";
             string DBSource = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DBTable_AllRecord + ".dbf");
@@ -146,7 +146,7 @@ namespace WindowsFormsApp1
             }
         }
 
-        private void InsertCallerDetailsToPerLineDBF(int index, string phoneNumber, string dialDatetime)
+        private void KYC_InsertCallerDetailsToPerLineDBF(int index, string phoneNumber, string dialDatetime)
         {
             string DBTable_AllRecord = "a03_callid_reg";
             string DBSource = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DBTable_AllRecord + ".dbf");
@@ -166,7 +166,7 @@ namespace WindowsFormsApp1
             }
         }
 
-        private void InsertContentToTXT(string fileLocation, string content)
+        private void KYC_InsertContentToTXT(string fileLocation, string content)
         {
             // open the file for writing.
             StreamWriter writer = new StreamWriter(fileLocation);
@@ -238,8 +238,8 @@ namespace WindowsFormsApp1
                                 }
                                 listView1.Items[nLine].SubItems[4].Text = phoneNumber;
                                 listView1.Items[nLine].SubItems[5].Text = strDialDatetime;
-                                InsertCallerDetailsToRecordDBF(nLine, phoneNumber, dialDatetime);
-                                InsertCallerDetailsToPerLineDBF(nLine, phoneNumber, strDialDatetime);
+                                KYC_InsertCallerDetailsToRecordDBF(nLine, phoneNumber, dialDatetime);
+                                KYC_InsertCallerDetailsToPerLineDBF(nLine, phoneNumber, strDialDatetime);
                             });
                         }
                         break;
@@ -290,7 +290,7 @@ namespace WindowsFormsApp1
                     default:
                         break;
                 }
-                InsertContentToTXT("kyc_ad102_num.txt", countDevice.Sum().ToString());
+                KYC_InsertContentToTXT("kyc_ad102_num.txt", countDevice.Sum().ToString());
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
@@ -355,7 +355,7 @@ namespace WindowsFormsApp1
         private void CallID_FormClosing(object sender, FormClosingEventArgs e)
         {
             // clear content in kyc_ad102_num.txt after closing app
-            InsertContentToTXT("kyc_ad102_num.txt", "");
+            KYC_InsertContentToTXT("kyc_ad102_num.txt", "");
         }
     }
 }
