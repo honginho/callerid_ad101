@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.OleDb;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -165,6 +166,20 @@ namespace WindowsFormsApp1
             }
         }
 
+        private void InsertContentToTXT(string fileLocation, string content)
+        {
+            // open the file for writing.
+            StreamWriter writer = new StreamWriter(fileLocation);
+            // write the current date to the file.
+            writer.Write(content);
+            // remember to close the file again.
+            writer.Close();
+            // remember to dispose it from the memory.
+            writer.Dispose();
+        }
+
+        private int[] countDevice = { 0, 0, 0, 0 };
+
         #region
         private void OnDeviceMsg(IntPtr wParam, IntPtr Lparam)
         {
@@ -180,6 +195,7 @@ namespace WindowsFormsApp1
                 {
                     // Init
                     case MCU_BACKDISABLE:
+                        countDevice[nLine] = 0;
                         listView1.Items[nLine].SubItems[1].Text = "-";
                         listView1.Items[nLine].SubItems[2].Text = "-";
                         listView1.Items[nLine].SubItems[3].Text = "-";
@@ -188,6 +204,7 @@ namespace WindowsFormsApp1
                         break;
                     case MCU_BACKID:
                         {
+                            countDevice[nLine] = 1;
                             StringBuilder szCPUVersion = new StringBuilder(32);
                             listView1.Items[nLine].SubItems[1].Text = "啟用";
                             AD101_GetCPUVersion(nLine, szCPUVersion);
@@ -273,6 +290,7 @@ namespace WindowsFormsApp1
                     default:
                         break;
                 }
+                InsertContentToTXT("kyc_ad102_num.txt", countDevice.Sum().ToString());
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
@@ -308,10 +326,10 @@ namespace WindowsFormsApp1
             listView1.Columns.Add("電話號碼", 130, HorizontalAlignment.Left);
             listView1.Columns.Add("來電時間", 200, HorizontalAlignment.Left);
 
+            listView1.Items.Add("0");
             listView1.Items.Add("1");
             listView1.Items.Add("2");
             listView1.Items.Add("3");
-            listView1.Items.Add("4");
 
             for (int i = 0; i < 4; i++)
             {
@@ -332,6 +350,12 @@ namespace WindowsFormsApp1
             }
             catch (Exception ex) { MessageBox.Show(ex.Message + " " + ex.InnerException.Message); }
             AD101_SetLED(0, 3);
+        }
+
+        private void CallID_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // clear content in kyc_ad102_num.txt after closing app
+            InsertContentToTXT("kyc_ad102_num.txt", "");
         }
     }
 }

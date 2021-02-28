@@ -50,7 +50,8 @@ namespace WindowsFormsApp1
             this.ClientSize = new System.Drawing.Size(759, 211);
             this.Controls.Add(this.listView1);
             this.Name = "CallID";
-            this.Text = "來電顯示";
+            this.Text = "來電顯示 A0227";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CallID_FormClosing);
             this.Load += new System.EventHandler(this.CallID_Load);
             this.ResumeLayout(false);
 
