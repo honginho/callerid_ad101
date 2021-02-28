@@ -153,15 +153,38 @@ namespace WindowsFormsApp1
             using (OleDbConnection dbfcon = new OleDbConnection("Provider=vfpoledb;Data Source=" + DBSource + ";Collating Sequence=machine;Mode=ReadWrite;"))
             {
                 dbfcon.Open();
+                // check data if exist
+                string query1 = @"SELECT COUNT(c_line) AS c_line_num FROM " + DBTable_AllRecord + " WHERE c_line = ?";
+                OleDbCommand cmd1 = new OleDbCommand(query1, dbfcon);
+                cmd1.Parameters.AddWithValue("@c_line", index);
+                DataTable table = new DataTable();
+                OleDbDataAdapter adapter = new OleDbDataAdapter();
+                adapter.SelectCommand = cmd1;
+                adapter.Fill(table);
+                int isLineExist = 0;
+                foreach (DataRow row in table.Rows)
+                {
+                    isLineExist = Convert.ToInt32(row["c_line_num"]);
+                }
 
-                string query = @"UPDATE " + DBTable_AllRecord + " SET c_tel = ?, datetime1 = ?, c_no01='', c_no02='', c_no03='', c_no04='', c_no05='', c_no06='', c_no07='', c_no08='', c_no09='', c_no10='' WHERE c_line = ?";
-                OleDbCommand cmd = new OleDbCommand(query, dbfcon);
-                cmd.Parameters.AddWithValue("@c_tel", phoneNumber);
-                cmd.Parameters.AddWithValue("@datetime1", dialDatetime);
-                cmd.Parameters.AddWithValue("@c_line", index);
+                string query2;
+                if (isLineExist == 0) // not exist, then insert
+                {
+                    query2 = @"INSERT INTO " + DBTable_AllRecord + " (c_tel, datetime1, c_line, c_no01, c_no02, c_no03, c_no04, c_no05, c_no06, c_no07, c_no08, c_no09, c_no10) VALUES(?,?,?,'','','','','','','','','','')";
+                }
+                else // exist, then update
+                {
+                    query2 = @"UPDATE " + DBTable_AllRecord + " SET c_tel = ?, datetime1 = ?, c_no01='', c_no02='', c_no03='', c_no04='', c_no05='', c_no06='', c_no07='', c_no08='', c_no09='', c_no10='' WHERE c_line = ?";
+                }
+                OleDbCommand cmd2 = new OleDbCommand(query2, dbfcon);
+                // order of value should be the same with query string, or it will cause data type mismatch error.
+                cmd2.Parameters.AddWithValue("@c_tel", phoneNumber);
+                cmd2.Parameters.AddWithValue("@datetime1", dialDatetime);
+                cmd2.Parameters.AddWithValue("@c_line", index);
 
                 new OleDbCommand("set null off", dbfcon).ExecuteNonQuery();
-                cmd.ExecuteNonQuery();
+                cmd1.ExecuteNonQuery();
+                cmd2.ExecuteNonQuery();
                 dbfcon.Close();
             }
         }
